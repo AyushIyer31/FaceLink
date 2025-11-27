@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { Toggle } from "@/components/ui/toggle"
 import { VideoDisplay } from "@/components/video-display"
 import { PersonInfo } from "@/components/person-info"
 import { Timeline } from "@/components/timeline"
@@ -43,7 +44,7 @@ export default function HomePage() {
   const [people, setPeople] = useState<Person[]>(initialPeople)
   const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([])
   const [currentPerson, setCurrentPerson] = useState<Person | null>(null)
-  const [isRecognizing, setIsRecognizing] = useState(false)
+  const [isVisitorMode, setIsVisitorMode] = useState(false)
   const [activeTab, setActiveTab] = useState<"home" | "calendar" | "location">("home")
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -59,6 +60,10 @@ export default function HomePage() {
 
   async function startCamera() {
     try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.warn("Camera API not available in this environment")
+        return
+      }
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user" },
         audio: false,
@@ -73,7 +78,7 @@ export default function HomePage() {
   }
 
   function recognizePerson() {
-    setIsRecognizing(true)
+    setIsVisitorMode(true)
 
     setTimeout(() => {
       const randomPerson = people[Math.floor(Math.random() * people.length)]
@@ -86,7 +91,6 @@ export default function HomePage() {
         timestamp: new Date(),
       }
       setTimelineEvents((prev) => [newEvent, ...prev])
-      setIsRecognizing(false)
     }, 1200)
   }
 
@@ -136,18 +140,18 @@ export default function HomePage() {
             <HelpButton />
 
             <Card className="p-6">
-              <h2 className="text-2xl md:text-3xl font-semibold mb-6 text-foreground">Live View</h2>
-              <VideoDisplay videoRef={videoRef} />
-              <div className="mt-6">
-                <Button
-                  onClick={recognizePerson}
-                  disabled={isRecognizing}
-                  size="lg"
-                  className="w-full text-xl md:text-2xl py-8 font-semibold"
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl md:text-3xl font-semibold text-foreground">Live View</h2>
+                <Toggle
+                  pressed={isVisitorMode}
+                  onPressedChange={setIsVisitorMode}
+                  className="text-sm px-3 py-1 font-semibold"
+                  aria-label="Toggle Visitor Mode"
                 >
-                  {isRecognizing ? "Recognizing..." : "Recognize Person"}
-                </Button>
+                  {isVisitorMode ? "Visitor Mode: ON" : "Visitor Mode: OFF"}
+                </Toggle>
               </div>
+              <VideoDisplay videoRef={videoRef} />
             </Card>
 
             {currentPerson && <PersonInfo person={currentPerson} />}
