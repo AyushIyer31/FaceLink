@@ -1,3 +1,26 @@
+# Ignore Next.js build output for the frontend
+FrontEnd/.next/
+
+# Node modules (frontend)
+FrontEnd/node_modules/
+
+# Local env files
+FrontEnd/.env*
+
+# Vercel / deployment
+FrontEnd/.vercel/
+
+# Python virtual environment
+Backend/.venv/
+
+# Runtime logs and PID files
+backend.log
+backend.pid
+frontend.log
+frontend.pid
+
+# macOS
+.DS_Store
 node_modules/
 /.vscode/
 _remote_clone/
