@@ -1,1 +1,7 @@
 node_modules/
+/.vscode/
+_remote_clone/
+instance/
+FrontEnd/.next/
+FrontEnd/node_modules/
+.DS_Store
