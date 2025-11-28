@@ -190,6 +190,80 @@ export async function recognizeFace(imageBase64: string): Promise<RecognitionRes
   }
 }
 
+// Locations (safe places)
+export interface Location {
+  id: string;
+  label: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  place_type?: string;
+}
+
+export async function fetchLocations(): Promise<Location[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/locations`)
+    const data = await res.json()
+    return data.success ? data.data.locations : []
+  } catch (error) {
+    console.error('Failed to fetch locations:', error)
+    return []
+  }
+}
+
+export async function createLocation(payload: Partial<Location>): Promise<Location | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/locations`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    const data = await res.json()
+    return data.success ? data.data.location : null
+  } catch (error) {
+    console.error('Failed to create location:', error)
+    return null
+  }
+}
+
+export async function updateLocation(id: string, updates: Partial<Location>): Promise<Location | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/locations/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    })
+    const data = await res.json()
+    return data.success ? data.data.location : null
+  } catch (error) {
+    console.error('Failed to update location:', error)
+    return null
+  }
+}
+
+export async function deleteLocation(id: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/locations/${id}`, { method: 'DELETE' })
+    const data = await res.json()
+    return data.success
+  } catch (error) {
+    console.error('Failed to delete location:', error)
+    return false
+  }
+}
+
+// Upcoming tasks
+export async function fetchUpcomingTasks(limit = 1): Promise<Task[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/tasks/upcoming?limit=${limit}`)
+    const data = await res.json()
+    return data.success ? data.data.tasks : []
+  } catch (error) {
+    console.error('Failed to fetch upcoming tasks:', error)
+    return []
+  }
+}
+
 // Helper to capture frame from video element as base64
 export function captureVideoFrame(video: HTMLVideoElement): string | null {
   try {

@@ -35,6 +35,7 @@ def create_app(config_class=Config):
     from routes.tasks import tasks_bp
     from routes.settings import settings_bp
     from routes.help import help_bp
+    from routes.locations import locations_bp
     
     app.register_blueprint(people_bp)
     app.register_blueprint(recognize_bp)
@@ -42,6 +43,7 @@ def create_app(config_class=Config):
     app.register_blueprint(tasks_bp)
     app.register_blueprint(settings_bp)
     app.register_blueprint(help_bp)
+    app.register_blueprint(locations_bp)
     
     # Health check endpoint
     @app.route('/health', methods=['GET'])

@@ -207,3 +207,30 @@ class RecognitionCooldown(db.Model):
             'person_id': str(self.person_id),
             'last_recognized_at': self.last_recognized_at.isoformat() if self.last_recognized_at else None
         }
+
+class Location(db.Model):
+    """Safe place locations: home, family homes, doctors, etc."""
+    __tablename__ = 'locations'
+
+    id = db.Column(db.Integer, primary_key=True)
+    label = db.Column(db.String(150), nullable=False)
+    address = db.Column(db.String(500), nullable=True)
+    latitude = db.Column(db.Float, nullable=True)
+    longitude = db.Column(db.Float, nullable=True)
+    place_type = db.Column(db.String(50), nullable=True)  # e.g., home, family, doctor
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': str(self.id),
+            'label': self.label,
+            'address': self.address,
+            'latitude': self.latitude,
+            'longitude': self.longitude,
+            'place_type': self.place_type,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+        }
