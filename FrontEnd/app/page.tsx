@@ -11,52 +11,58 @@ import { PeopleList } from "@/components/people-list"
 import { HelpButton } from "@/components/help-button"
 import { CalendarView } from "@/components/calendar-view"
 import { LocationView } from "@/components/location-view"
-import type { Person, TimelineEvent } from "@/types"
-
-const initialPeople: Person[] = [
-  {
-    id: "1",
-    name: "Anika",
-    relationship: "Daughter",
-    reminder: "Lives in Seattle. Works as a teacher. Loves gardening.",
-  },
-  {
-    id: "2",
-    name: "Ravi",
-    relationship: "Son",
-    reminder: "Engineer at tech company. Visits every Sunday. Just got engaged.",
-  },
-  {
-    id: "3",
-    name: "Dr. Lee",
-    relationship: "Neurologist",
-    reminder: "Your doctor. Appointments on Tuesdays. Likes to hear about your walks.",
-  },
-  {
-    id: "4",
-    name: "Margaret",
-    relationship: "Neighbor",
-    reminder: "Brings fresh bread on Thursdays. Has a golden retriever named Buddy.",
-  },
-]
+import { 
+  recognizeFace, 
+  captureVideoFrame,
+  announcePersonWithTTS,
+  type Person
+} from "@/lib/api"
 
 export default function HomePage() {
-  const [people, setPeople] = useState<Person[]>(initialPeople)
-  const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([])
   const [currentPerson, setCurrentPerson] = useState<Person | null>(null)
   const [isVisitorMode, setIsVisitorMode] = useState(false)
+  const [isRecognizing, setIsRecognizing] = useState(false)
   const [activeTab, setActiveTab] = useState<"home" | "calendar" | "location">("home")
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
+  const recognitionIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
+  // Start camera on mount
   useEffect(() => {
     startCamera()
     return () => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop())
       }
+      if (recognitionIntervalRef.current) {
+        clearInterval(recognitionIntervalRef.current)
+      }
     }
   }, [])
+
+  // Handle visitor mode face recognition
+  useEffect(() => {
+    if (isVisitorMode && videoRef.current) {
+      // Start periodic face recognition when visitor mode is ON
+      recognitionIntervalRef.current = setInterval(async () => {
+        if (videoRef.current && !isRecognizing) {
+          await performRecognition()
+        }
+      }, 3000) // Check every 3 seconds
+    } else {
+      // Stop recognition when visitor mode is OFF
+      if (recognitionIntervalRef.current) {
+        clearInterval(recognitionIntervalRef.current)
+        recognitionIntervalRef.current = null
+      }
+    }
+
+    return () => {
+      if (recognitionIntervalRef.current) {
+        clearInterval(recognitionIntervalRef.current)
+      }
+    }
+  }, [isVisitorMode, isRecognizing])
 
   async function startCamera() {
     try {
@@ -77,21 +83,38 @@ export default function HomePage() {
     }
   }
 
-  function recognizePerson() {
-    setIsVisitorMode(true)
+  async function performRecognition() {
+    if (!videoRef.current || isRecognizing) return
 
-    setTimeout(() => {
-      const randomPerson = people[Math.floor(Math.random() * people.length)]
-      setCurrentPerson(randomPerson)
-
-      const newEvent: TimelineEvent = {
-        id: Date.now().toString(),
-        personName: randomPerson.name,
-        relationship: randomPerson.relationship,
-        timestamp: new Date(),
+    setIsRecognizing(true)
+    
+    try {
+      const frameData = captureVideoFrame(videoRef.current)
+      if (!frameData) {
+        setIsRecognizing(false)
+        return
       }
-      setTimelineEvents((prev) => [newEvent, ...prev])
-    }, 1200)
+
+      const result = await recognizeFace(frameData)
+      
+      if (result && result.recognized && result.person) {
+        setCurrentPerson(result.person)
+        
+        // Announce with TTS if should_announce is true (cooldown passed)
+        if (result.should_announce) {
+          announcePersonWithTTS(result.person)
+        }
+      }
+    } catch (error) {
+      console.error("Recognition error:", error)
+    }
+    
+    setIsRecognizing(false)
+  }
+
+  // Manual recognition trigger
+  function handleManualRecognition() {
+    performRecognition()
   }
 
   return (
@@ -142,24 +165,38 @@ export default function HomePage() {
             <Card className="p-6">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl md:text-3xl font-semibold text-foreground">Live View</h2>
-                <Toggle
-                  pressed={isVisitorMode}
-                  onPressedChange={setIsVisitorMode}
-                  className="text-sm px-3 py-1 font-semibold"
-                  aria-label="Toggle Visitor Mode"
-                >
-                  {isVisitorMode ? "Visitor Mode: ON" : "Visitor Mode: OFF"}
-                </Toggle>
+                <div className="flex items-center gap-4">
+                  <Toggle
+                    pressed={isVisitorMode}
+                    onPressedChange={setIsVisitorMode}
+                    className="text-sm px-3 py-1 font-semibold"
+                    aria-label="Toggle Visitor Mode"
+                  >
+                    {isVisitorMode ? "Visitor Mode: ON" : "Visitor Mode: OFF"}
+                  </Toggle>
+                  <Button 
+                    onClick={handleManualRecognition} 
+                    disabled={isRecognizing}
+                    variant="outline"
+                  >
+                    {isRecognizing ? "Scanning..." : "Scan Face"}
+                  </Button>
+                </div>
               </div>
               <VideoDisplay videoRef={videoRef} />
+              {isVisitorMode && (
+                <p className="text-center text-muted-foreground mt-4">
+                  {isRecognizing ? "🔍 Scanning for faces..." : "✅ Visitor mode active - scanning every 3 seconds"}
+                </p>
+              )}
             </Card>
 
             {currentPerson && <PersonInfo person={currentPerson} />}
           </main>
 
           <aside className="space-y-6">
-            <Timeline events={timelineEvents} />
-            <PeopleList people={people} onUpdate={setPeople} />
+            <Timeline />
+            <PeopleList />
           </aside>
         </div>
       )}
