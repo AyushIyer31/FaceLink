@@ -1,5 +1,5 @@
 import { Card } from "@/components/ui/card"
-import type { Person } from "@/types"
+import type { Person } from "@/lib/api"
 
 interface PersonInfoProps {
   person: Person
@@ -17,9 +17,11 @@ export function PersonInfo({ person }: PersonInfoProps) {
           <p className="text-lg font-medium opacity-90">Your</p>
           <p className="text-3xl font-semibold">{person.relationship}</p>
         </div>
-        <div className="pt-4 border-t border-primary-foreground/20">
-          <p className="text-xl leading-relaxed">{person.reminder}</p>
-        </div>
+        {person.reminder && (
+          <div className="pt-4 border-t border-primary-foreground/20">
+            <p className="text-xl leading-relaxed">{person.reminder}</p>
+          </div>
+        )}
       </div>
     </Card>
   )
