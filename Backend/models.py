@@ -99,7 +99,7 @@ class TimelineEvent(db.Model):
         }
         if self.person:
             data['person_name'] = self.person.name
-            data['relationship'] = self.person.relationship
+            data['person_relationship'] = self.person.relationship
             data['person_id'] = str(self.person_id)
         return data
 

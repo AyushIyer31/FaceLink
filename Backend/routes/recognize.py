@@ -66,6 +66,7 @@ def recognize_face():
             return jsonify(format_response(
                 success=True,
                 data={
+                    'recognized': False,
                     'person': None,
                     'confidence': 0.0,
                     'timeline_event': timeline_event.to_dict(),
@@ -134,6 +135,7 @@ def recognize_face():
             return jsonify(format_response(
                 success=True,
                 data={
+                    'recognized': True,
                     'person': person.to_dict(),
                     'confidence': round(confidence, 3),
                     'timeline_event': timeline_event.to_dict(),
@@ -154,6 +156,7 @@ def recognize_face():
             return jsonify(format_response(
                 success=True,
                 data={
+                    'recognized': False,
                     'person': None,
                     'confidence': 0.0,
                     'timeline_event': timeline_event.to_dict(),
