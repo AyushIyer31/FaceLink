@@ -103,6 +103,21 @@ export async function updatePerson(id: string, updates: Partial<Person>): Promis
   }
 }
 
+export async function uploadPersonPhoto(id: string, imageBase64: string): Promise<Person | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/people/${id}/upload-photo`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: imageBase64 }),
+    });
+    const data = await res.json();
+    return data.success ? data.data.person : null;
+  } catch (error) {
+    console.error('Failed to upload photo:', error);
+    return null;
+  }
+}
+
 export async function deletePerson(id: string): Promise<boolean> {
   try {
     const res = await fetch(`${API_BASE_URL}/api/people/${id}`, {

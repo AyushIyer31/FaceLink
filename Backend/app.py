@@ -77,6 +77,15 @@ def create_app(config_class=Config):
     # Create database tables
     with app.app_context():
         db.create_all()
+        
+        # Auto-create default user if not exists
+        from models import User
+        if not User.query.filter_by(id=1).first():
+            default_user = User(id=1, email='patient@facelink.app', name='Patient')
+            db.session.add(default_user)
+            db.session.commit()
+            print("✅ Default user created")
+        
         print("✅ Database tables created successfully")
     
     return app

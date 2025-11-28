@@ -123,7 +123,7 @@ export function LocationView() {
             </div>
 
             <div className="mt-4 flex gap-2">
-              <Button onClick={handleTakeMeHome} variant="primary">Take me home</Button>
+              <Button onClick={handleTakeMeHome} variant="default">Take me home</Button>
               <Button variant="outline" onClick={() => setIsCaregiverMode(!isCaregiverMode)}>{isCaregiverMode ? 'Exit Edit' : 'Caregiver Edit Mode'}</Button>
               {isCaregiverMode && <Button variant="ghost" onClick={handleAddLocation}>Add</Button>}
             </div>

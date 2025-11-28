@@ -165,7 +165,7 @@ export function PeopleList() {
                     {/* Photo preview */}
                     {person.photo_url ? (
                       <img 
-                        src={`http://localhost:3001${person.photo_url}`} 
+                        src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}${person.photo_url}`} 
                         alt={person.name}
                         className="w-16 h-16 rounded-full object-cover border-2 border-primary"
                       />

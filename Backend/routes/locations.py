@@ -13,8 +13,7 @@ MOCK_USER_ID = 1
 def get_locations():
     try:
         locs = Location.query.filter_by(user_id=MOCK_USER_ID).all()
-        return jsonify(format_response(success=True, data={'locations': [l.to_dict() for l in locs]})
-), 200
+        return jsonify(format_response(success=True, data={'locations': [l.to_dict() for l in locs]})), 200
     except Exception as e:
         return jsonify(format_response(success=False, error=str(e))), 500
 

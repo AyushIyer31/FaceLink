@@ -1,1 +1,11 @@
 node_modules/
+
+# Next.js build output
+.next/
+out/
+
+# Python
+__pycache__/
+*.pyc
+instance/
+*.db
