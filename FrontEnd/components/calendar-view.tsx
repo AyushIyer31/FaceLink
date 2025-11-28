@@ -134,6 +134,80 @@ export function CalendarView() {
     return dateStr === formatDateStr(now)
   }
 
+  // Render expanded day details into the modal
+  function renderDayDetails(day?: DayData | undefined) {
+    if (!day) return null
+    const items = getGroupedItems(day)
+
+    if (items.length === 0) {
+      return (
+        <p className="text-center text-muted-foreground py-8">
+          No tasks or encounters scheduled
+        </p>
+      )
+    }
+
+    return items.map((item, idx) => (
+      <div key={`${item.type}-${idx}`} className="pb-4 border-b last:border-b-0">
+        {item.type === 'task' ? (
+          (() => {
+            const task = item.data as Task
+            return (
+              <div>
+                <div className="flex items-baseline gap-3 mb-2">
+                  <span className="text-2xl font-bold text-primary">
+                    {formatTime(task.time)}
+                  </span>
+                  <h3 className="text-xl md:text-2xl font-semibold text-foreground">
+                    {task.title}
+                  </h3>
+                  {task.completed && (
+                    <span className="text-lg text-green-600">✓</span>
+                  )}
+                </div>
+                {task.description && (
+                  <p className="text-lg text-muted-foreground ml-24">
+                    {task.description}
+                  </p>
+                )}
+              </div>
+            )
+          })()
+        ) : (
+          (() => {
+            const event = item.data as TimelineEvent
+            return (
+              <div>
+                <div className="flex items-baseline gap-3 mb-2">
+                  <span className="text-2xl font-bold text-blue-600">
+                    {formatEventTime(event.timestamp)}
+                  </span>
+                  <h3 className="text-xl md:text-2xl font-semibold text-foreground">
+                    {event.person_name || 'Unknown Person'}
+                  </h3>
+                </div>
+                <div className="space-y-1 ml-24 text-lg text-muted-foreground">
+                  {event.person_relationship && (
+                    <p>Relationship: {event.person_relationship}</p>
+                  )}
+                  {event.confidence !== undefined && (
+                    <p>
+                      Confidence:{' '}
+                      <span className="font-semibold">
+                        {(event.confidence * 100).toFixed(1)}%
+                      </span>
+                    </p>
+                  )}
+                  {event.notes && <p>Notes: {event.notes}</p>}
+                </div>
+              </div>
+            )
+          })()
+        )}
+      </div>
+    ))
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-6">
       <div className="mb-8">
@@ -143,119 +217,122 @@ export function CalendarView() {
         </p>
       </div>
 
-      {isLoading ? (
+      {isLoading && (
         <div className="text-center py-12">
           <p className="text-xl text-muted-foreground">Loading week...</p>
         </div>
-      ) : (
+      )}
+
+      {!isLoading && (
         <div>
           <div className="mb-6">
             <VoicePlanner onDone={loadWeekData} />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {weekDays.map((day) => {
-            const hasItems = day.tasks.length > 0 || day.events.length > 0
-            const isCurrentDay = isToday(day.dateStr)
+            {weekDays.map((day) => {
+              const hasItems = day.tasks.length > 0 || day.events.length > 0
+              const isCurrentDay = isToday(day.dateStr)
 
-            return (
-              <Card
-                key={day.dateStr}
-                className={`p-6 cursor-pointer transition-all hover:shadow-lg ${
-                  isCurrentDay
-                    ? 'border-2 border-primary bg-primary/5'
-                    : 'border border-border hover:border-primary'
-                }`}
-                onClick={() => setExpandedDay(day.dateStr)}
-              >
-                <div className="mb-4">
-                  <h2 className="text-2xl md:text-3xl font-bold text-foreground">
-                    {day.dayName}
-                  </h2>
-                  <p className="text-lg md:text-xl text-muted-foreground">
-                    {day.date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                  </p>
-                  {isCurrentDay && (
-                    <span className="inline-block mt-2 text-sm font-semibold text-primary bg-primary/10 px-3 py-1 rounded-full">
-                      Today
-                    </span>
-                  )}
-                </div>
-
-                {hasItems ? (
-                  <div className="space-y-3">
-                    {day.tasks.length > 0 && (
-                      <div>
-                        <p className="text-sm font-semibold text-muted-foreground mb-2">
-                          Tasks ({day.tasks.length})
-                        </p>
-                        <div className="space-y-2">
-                          {day.tasks.slice(0, 2).map((task) => (
-                            <div
-                              key={task.id}
-                              className={`text-sm p-2 rounded ${
-                                task.completed
-                                  ? 'bg-muted/50 line-through text-muted-foreground'
-                                  : 'bg-primary/10 text-foreground'
-                              }`}
-                            >
-                              <span className="font-medium">{formatTime(task.time)}</span>
-                              <span className="text-xs ml-2">{task.title}</span>
-                            </div>
-                          ))}
-                          {day.tasks.length > 2 && (
-                            <p className="text-xs text-muted-foreground">
-                              +{day.tasks.length - 2} more
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {day.events.length > 0 && (
-                      <div>
-                        <p className="text-sm font-semibold text-muted-foreground mb-2">
-                          Encounters ({day.events.length})
-                        </p>
-                        <div className="space-y-2">
-                          {day.events.slice(0, 2).map((event) => (
-                            <div
-                              key={event.id}
-                              className="text-sm p-2 rounded bg-blue/10 text-foreground"
-                            >
-                              <span className="font-medium">{formatEventTime(event.timestamp)}</span>
-                              {event.person_name && (
-                                <span className="text-xs ml-2">
-                                  {event.person_name}
-                                  {event.person_relationship && ` (${event.person_relationship})`}
-                                </span>
-                              )}
-                            </div>
-                          ))}
-                          {day.events.length > 2 && (
-                            <p className="text-xs text-muted-foreground">
-                              +{day.events.length - 2} more
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-center text-muted-foreground py-8">No events or tasks</p>
-                )}
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full mt-4"
+              return (
+                <Card
+                  key={day.dateStr}
+                  className={`p-6 cursor-pointer transition-all hover:shadow-lg ${
+                    isCurrentDay
+                      ? 'border-2 border-primary bg-primary/5'
+                      : 'border border-border hover:border-primary'
+                  }`}
                   onClick={() => setExpandedDay(day.dateStr)}
                 >
-                  View Details
-                </Button>
-              </Card>
-            )
-          })}
+                  <div className="mb-4">
+                    <h2 className="text-2xl md:text-3xl font-bold text-foreground">
+                      {day.dayName}
+                    </h2>
+                    <p className="text-lg md:text-xl text-muted-foreground">
+                      {day.date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    </p>
+                    {isCurrentDay && (
+                      <span className="inline-block mt-2 text-sm font-semibold text-primary bg-primary/10 px-3 py-1 rounded-full">
+                        Today
+                      </span>
+                    )}
+                  </div>
+
+                  {hasItems ? (
+                    <div className="space-y-3">
+                      {day.tasks.length > 0 && (
+                        <div>
+                          <p className="text-sm font-semibold text-muted-foreground mb-2">
+                            Tasks ({day.tasks.length})
+                          </p>
+                          <div className="space-y-2">
+                            {day.tasks.slice(0, 2).map((task) => (
+                              <div
+                                key={task.id}
+                                className={`text-sm p-2 rounded ${
+                                  task.completed
+                                    ? 'bg-muted/50 line-through text-muted-foreground'
+                                    : 'bg-primary/10 text-foreground'
+                                }`}
+                              >
+                                <span className="font-medium">{formatTime(task.time)}</span>
+                                <span className="text-xs ml-2">{task.title}</span>
+                              </div>
+                            ))}
+                            {day.tasks.length > 2 && (
+                              <p className="text-xs text-muted-foreground">
+                                +{day.tasks.length - 2} more
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {day.events.length > 0 && (
+                        <div>
+                          <p className="text-sm font-semibold text-muted-foreground mb-2">
+                            Encounters ({day.events.length})
+                          </p>
+                          <div className="space-y-2">
+                            {day.events.slice(0, 2).map((event) => (
+                              <div
+                                key={event.id}
+                                className="text-sm p-2 rounded bg-blue/10 text-foreground"
+                              >
+                                <span className="font-medium">{formatEventTime(event.timestamp)}</span>
+                                {event.person_name && (
+                                  <span className="text-xs ml-2">
+                                    {event.person_name}
+                                    {event.person_relationship && ` (${event.person_relationship})`}
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                            {day.events.length > 2 && (
+                              <p className="text-xs text-muted-foreground">
+                                +{day.events.length - 2} more
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-center text-muted-foreground py-8">No events or tasks</p>
+                  )}
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full mt-4"
+                    onClick={() => setExpandedDay(day.dateStr)}
+                  >
+                    View Details
+                  </Button>
+                </Card>
+              )
+            })}
+          </div>
         </div>
       )}
 
@@ -276,78 +353,7 @@ export function CalendarView() {
             </DialogHeader>
 
             <div className="space-y-6 py-4">
-              {weekDays.find((d) => d.dateStr === expandedDay) && (() => {
-                const day = weekDays.find((d) => d.dateStr === expandedDay)!
-                const items = getGroupedItems(day)
-
-                if (items.length === 0) {
-                  return (
-                    <p className="text-center text-muted-foreground py-8">
-                      No tasks or encounters scheduled
-                    </p>
-                  )
-                }
-
-                return items.map((item, idx) => (
-                  <div key={`${item.type}-${idx}`} className="pb-4 border-b last:border-b-0">
-                    {item.type === 'task' ? (
-                      (() => {
-                        const task = item.data as Task
-                        return (
-                          <div>
-                            <div className="flex items-baseline gap-3 mb-2">
-                              <span className="text-2xl font-bold text-primary">
-                                {formatTime(task.time)}
-                              </span>
-                              <h3 className="text-xl md:text-2xl font-semibold text-foreground">
-                                {task.title}
-                              </h3>
-                              {task.completed && (
-                                <span className="text-lg text-green-600">✓</span>
-                              )}
-                            </div>
-                            {task.description && (
-                              <p className="text-lg text-muted-foreground ml-24">
-                                {task.description}
-                              </p>
-                            )}
-                          </div>
-                        )
-                      })()
-                    ) : (
-                      (() => {
-                        const event = item.data as TimelineEvent
-                        return (
-                          <div>
-                            <div className="flex items-baseline gap-3 mb-2">
-                              <span className="text-2xl font-bold text-blue-600">
-                                {formatEventTime(event.timestamp)}
-                              </span>
-                              <h3 className="text-xl md:text-2xl font-semibold text-foreground">
-                                {event.person_name || 'Unknown Person'}
-                              </h3>
-                            </div>
-                            <div className="space-y-1 ml-24 text-lg text-muted-foreground">
-                              {event.person_relationship && (
-                                <p>Relationship: {event.person_relationship}</p>
-                              )}
-                              {event.confidence !== undefined && (
-                                <p>
-                                  Confidence:{' '}
-                                  <span className="font-semibold">
-                                    {(event.confidence * 100).toFixed(1)}%
-                                  </span>
-                                </p>
-                              )}
-                              {event.notes && <p>Notes: {event.notes}</p>}
-                            </div>
-                          </div>
-                        )
-                      })()
-                    )}
-                  </div>
-                ))
-              })()}
+              {renderDayDetails(weekDays.find((d) => d.dateStr === expandedDay))}
             </div>
           </DialogContent>
         </Dialog>

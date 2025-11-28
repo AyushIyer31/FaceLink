@@ -130,6 +130,21 @@ export async function fetchTasks(date?: string): Promise<Task[]> {
   }
 }
 
+export async function createTask(payload: Partial<Task>): Promise<Task | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/tasks`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    const data = await res.json()
+    return data.success ? data.data.task : null
+  } catch (error) {
+    console.error('Failed to create task:', error)
+    return null
+  }
+}
+
 export async function fetchSettings(): Promise<Settings | null> {
   try {
     const res = await fetch(`${API_BASE_URL}/api/settings`);
