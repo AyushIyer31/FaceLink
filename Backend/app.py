@@ -79,12 +79,25 @@ def create_app(config_class=Config):
         db.create_all()
         
         # Auto-create default user if not exists
-        from models import User
+        from models import User, Location
         if not User.query.filter_by(id=1).first():
             default_user = User(id=1, email='patient@facelink.app', name='Patient')
             db.session.add(default_user)
             db.session.commit()
             print("✅ Default user created")
+        
+        # Seed locations if none exist
+        if Location.query.count() == 0:
+            sample_locations = [
+                Location(label="Home", address="123 Main Street", latitude=37.7749, longitude=-122.4194, place_type="home", user_id=1),
+                Location(label="Doctor's Office", address="456 Health Ave", latitude=37.7849, longitude=-122.4094, place_type="medical", user_id=1),
+                Location(label="Pharmacy", address="789 Care Blvd", latitude=37.7649, longitude=-122.4294, place_type="pharmacy", user_id=1),
+                Location(label="Park", address="Central Park", latitude=37.7549, longitude=-122.4394, place_type="recreation", user_id=1),
+                Location(label="Grocery Store", address="321 Market St", latitude=37.7949, longitude=-122.3994, place_type="shopping", user_id=1),
+            ]
+            db.session.add_all(sample_locations)
+            db.session.commit()
+            print("✅ Sample locations seeded")
         
         print("✅ Database tables created successfully")
     

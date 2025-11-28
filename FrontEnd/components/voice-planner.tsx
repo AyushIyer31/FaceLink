@@ -84,19 +84,25 @@ export function VoicePlanner({ onDone }: { onDone?: () => void }) {
     const parts = text.split(/\bthen\b|,|\.|and then/gi).map(p => p.trim()).filter(Boolean)
     const created: string[] = []
     const skipped: string[] = []
+    const errors: string[] = []
     const today = new Date().toISOString().split('T')[0]
+
+    if (parts.length === 0) {
+      setStatus("Couldn't understand your plan. Try saying something like: 'Take medicine at 9 AM, then doctor visit at 2 PM'")
+      return
+    }
 
     for (const part of parts) {
       const time = parseTimeFromText(part)
       if (!time) {
-        skipped.push(part)
+        skipped.push(`"${part}" (no time found)`)
         continue
       }
 
       // Use the spoken phrase as the title (shorten)
       const title = part.replace(/at\s+\d{1,2}(:\d{2})?\s*(am|pm)?/i, '').trim()
       if (!title) {
-        skipped.push(part)
+        skipped.push(`"${part}" (no activity found)`)
         continue
       }
 
@@ -108,13 +114,32 @@ export function VoicePlanner({ onDone }: { onDone?: () => void }) {
         reminder: false,
       }
 
-      const res = await createTask(payload as any)
-      if (res) created.push(`${time} ${title}`)
-      else skipped.push(part)
+      try {
+        const res = await createTask(payload as any)
+        if (res) created.push(`✓ ${time} - ${title}`)
+        else errors.push(`"${title}" (API error)`)
+      } catch (err) {
+        errors.push(`"${title}" (network error)`)
+      }
     }
 
-    setStatus(`Saved ${created.length} items. Skipped ${skipped.length} items.`)
-    if (onDone) onDone()
+    // Build detailed status message
+    let statusMsg = ''
+    if (created.length > 0) {
+      statusMsg += `✅ Added ${created.length} task${created.length > 1 ? 's' : ''}: ${created.join(', ')}`
+    }
+    if (skipped.length > 0) {
+      statusMsg += `${statusMsg ? '\n' : ''}⚠️ Skipped: ${skipped.join(', ')}. Tip: Include a time like "at 3 PM"`
+    }
+    if (errors.length > 0) {
+      statusMsg += `${statusMsg ? '\n' : ''}❌ Errors: ${errors.join(', ')}`
+    }
+    if (!statusMsg) {
+      statusMsg = "No tasks could be created. Try: 'Take pills at 8 AM, lunch at noon, walk at 4 PM'"
+    }
+    
+    setStatus(statusMsg)
+    if (onDone && created.length > 0) onDone()
   }
 
   return (
