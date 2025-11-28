@@ -190,6 +190,21 @@ export async function recognizeFace(imageBase64: string): Promise<RecognitionRes
   }
 }
 
+export async function uploadPersonPhoto(personId: string, imageBase64: string): Promise<Person | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/people/${personId}/upload-photo`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: imageBase64 }),
+    });
+    const data = await res.json();
+    return data.success ? data.data.person : null;
+  } catch (error) {
+    console.error('Failed to upload photo:', error);
+    return null;
+  }
+}
+
 // Helper to capture frame from video element as base64
 export function captureVideoFrame(video: HTMLVideoElement): string | null {
   try {

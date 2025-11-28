@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Pencil, Plus, Check, X, Trash2 } from "lucide-react"
-import { fetchPeople, createPerson, updatePerson, deletePerson, type Person } from "@/lib/api"
+import { Pencil, Plus, Check, X, Trash2, Camera, Upload } from "lucide-react"
+import { fetchPeople, createPerson, updatePerson, deletePerson, uploadPersonPhoto, type Person } from "@/lib/api"
+import { PhotoCaptureDialog } from "@/components/photo-capture-dialog"
 
 export function PeopleList() {
   const [people, setPeople] = useState<Person[]>([])
@@ -13,6 +14,9 @@ export function PeopleList() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [isAdding, setIsAdding] = useState(false)
   const [editForm, setEditForm] = useState({ name: "", relationship: "", reminder: "" })
+  const [uploadingPhotoFor, setUploadingPhotoFor] = useState<string | null>(null)
+  const [showCameraFor, setShowCameraFor] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     loadPeople()
@@ -68,6 +72,37 @@ export function PeopleList() {
     setIsAdding(false)
   }
 
+  async function handlePhotoUpload(personId: string, imageBase64: string) {
+    setUploadingPhotoFor(personId)
+    const updatedPerson = await uploadPersonPhoto(personId, imageBase64)
+    if (updatedPerson) {
+      setPeople(people.map((p) => (p.id === personId ? updatedPerson : p)))
+    }
+    setUploadingPhotoFor(null)
+  }
+
+  function triggerFileInput(personId: string) {
+    if (fileInputRef.current) {
+      fileInputRef.current.dataset.personId = personId
+      fileInputRef.current.click()
+    }
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    const personId = e.target.dataset.personId
+    if (file && personId) {
+      // Convert file to base64
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const base64 = reader.result as string
+        handlePhotoUpload(personId, base64)
+      }
+      reader.readAsDataURL(file)
+    }
+    e.target.value = '' // Reset input
+  }
+
   return (
     <Card className="p-6">
       <div className="flex items-center justify-between mb-4">
@@ -77,6 +112,15 @@ export function PeopleList() {
           Add
         </Button>
       </div>
+
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileChange}
+      />
 
       {isLoading ? (
         <p className="text-muted-foreground">Loading...</p>
@@ -117,14 +161,58 @@ export function PeopleList() {
                 </div>
               ) : (
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1">
-                    <p className="text-xl font-semibold">{person.name}</p>
-                    <p className="text-lg text-muted-foreground">{person.relationship}</p>
-                    {person.reminder && (
-                      <p className="text-sm text-muted-foreground mt-1 italic">{person.reminder}</p>
+                  <div className="flex gap-3 flex-1">
+                    {/* Photo preview */}
+                    {person.photo_url ? (
+                      <img 
+                        src={`http://localhost:3001${person.photo_url}`} 
+                        alt={person.name}
+                        className="w-16 h-16 rounded-full object-cover border-2 border-primary"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center border-2 border-border">
+                        <span className="text-2xl">👤</span>
+                      </div>
                     )}
+                    
+                    <div className="flex-1">
+                      <p className="text-xl font-semibold">{person.name}</p>
+                      <p className="text-lg text-muted-foreground">{person.relationship}</p>
+                      {person.reminder && (
+                        <p className="text-sm text-muted-foreground mt-1 italic">{person.reminder}</p>
+                      )}
+                    </div>
                   </div>
+                  
                   <div className="flex gap-1">
+                    {/* Camera capture button */}
+                    <Button
+                      onClick={() => setShowCameraFor(person.id)}
+                      size="sm"
+                      variant="ghost"
+                      disabled={uploadingPhotoFor === person.id || editingId !== null || isAdding}
+                      title="Take photo"
+                    >
+                      {uploadingPhotoFor === person.id ? (
+                        <span className="animate-spin">⏳</span>
+                      ) : (
+                        <Camera className="h-4 w-4" />
+                      )}
+                      <span className="sr-only">Take photo of {person.name}</span>
+                    </Button>
+                    
+                    {/* Upload photo button */}
+                    <Button
+                      onClick={() => triggerFileInput(person.id)}
+                      size="sm"
+                      variant="ghost"
+                      disabled={uploadingPhotoFor === person.id || editingId !== null || isAdding}
+                      title="Upload photo"
+                    >
+                      <Upload className="h-4 w-4" />
+                      <span className="sr-only">Upload photo for {person.name}</span>
+                    </Button>
+                    
                     <Button
                       onClick={() => startEdit(person)}
                       size="sm"
@@ -183,6 +271,19 @@ export function PeopleList() {
             </li>
           )}
         </ul>
+      )}
+
+      {/* Photo capture dialog */}
+      {showCameraFor && (
+        <PhotoCaptureDialog
+          open={true}
+          onClose={() => setShowCameraFor(null)}
+          onCapture={(imageBase64) => {
+            handlePhotoUpload(showCameraFor, imageBase64)
+            setShowCameraFor(null)
+          }}
+          personName={people.find(p => p.id === showCameraFor)?.name || ''}
+        />
       )}
     </Card>
   )

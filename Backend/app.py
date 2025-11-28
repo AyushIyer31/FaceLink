@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, send_from_directory
 from flask_cors import CORS
 from config import Config
 from models import db
@@ -42,6 +42,13 @@ def create_app(config_class=Config):
     app.register_blueprint(tasks_bp)
     app.register_blueprint(settings_bp)
     app.register_blueprint(help_bp)
+    
+    # Serve uploaded images
+    @app.route('/uploads/<filename>')
+    def uploaded_file(filename):
+        """Serve uploaded images"""
+        uploads_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
+        return send_from_directory(uploads_dir, filename)
     
     # Health check endpoint
     @app.route('/health', methods=['GET'])
