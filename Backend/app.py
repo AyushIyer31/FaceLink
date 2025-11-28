@@ -46,7 +46,7 @@ def create_app(config_class=Config):
     app.register_blueprint(locations_bp)
     
     # Serve uploaded images
-    @app.route('/uploads/<filename>')
+    @app.route('/uploads/<path:filename>')
     def uploaded_file(filename):
         """Serve uploaded images"""
         uploads_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
